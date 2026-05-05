@@ -88,9 +88,9 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand bg-brand/20 text-tbank-black text-xs font-semibold mb-6"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-dark bg-brand text-tbank-black text-xs font-semibold mb-6 shadow-[0_0_20px_rgba(255,221,45,0.15)]"
             >
-              <Sparkles size={12} />
+              <Sparkles size={12} className="shrink-0 opacity-90" aria-hidden />
               A new era of social networking
             </motion.div>
 
