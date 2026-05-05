@@ -1,0 +1,39 @@
+# Dependencies (never commit — run `npm install` after clone)
+node_modules
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+*.local
+
+# Logs & debug
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor & OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Env (secrets)
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Vite / caches
+.vite/
+.cache/
+
+# TypeScript
+*.tsbuildinfo
