@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Bell } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Search, Bell, Settings } from 'lucide-react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import Avatar from './Avatar';
 import ThemeToggle from './ThemeToggle';
+import { cn } from '../lib/utils';
 
 function TBankLogo() {
   return (
@@ -50,6 +51,21 @@ export default function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <NavLink
+          to="/app/settings"
+          title="Settings"
+          aria-label="Settings"
+          className={({ isActive }) =>
+            cn(
+              'p-2.5 rounded-xl transition-all',
+              isActive
+                ? 'text-tbank-black bg-brand shadow-[0_2px_6px_rgba(255,221,45,0.35)] dark:text-tbank-black dark:shadow-glow-dark'
+                : 'text-stone-500 hover:text-tbank-black hover:bg-brand/12 dark:text-white/50 dark:hover:text-white dark:hover:bg-brand/10',
+            )
+          }
+        >
+          <Settings size={18} />
+        </NavLink>
         <ThemeToggle />
 
         <button

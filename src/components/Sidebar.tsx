@@ -69,14 +69,24 @@ export default function Sidebar() {
 
       {/* Bottom actions */}
       <div className="space-y-1">
-        <button
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm
-          text-stone-500 hover:text-tbank-black hover:bg-tbank-gray/80
-          dark:text-white/40 dark:hover:text-white dark:hover:bg-white/[0.05] transition-all duration-200"
+        <NavLink
+          to="/app/settings"
+          className={({ isActive }) =>
+            cn(
+              'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-200',
+              isActive
+                ? 'bg-brand text-tbank-black shadow-[0_2px_8px_rgba(255,221,45,0.4)] dark:shadow-glow-dark'
+                : 'text-stone-500 hover:text-tbank-black hover:bg-tbank-gray/80 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/[0.05]',
+            )
+          }
         >
-          <Settings size={16} />
-          Settings
-        </button>
+          {({ isActive }) => (
+            <>
+              <Settings size={16} className={isActive ? 'text-tbank-black' : ''} />
+              Settings
+            </>
+          )}
+        </NavLink>
         {/* TODO: DELETE /api/auth/session */}
         <button
           onClick={() => navigate('/')}

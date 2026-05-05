@@ -7,6 +7,7 @@ import FeedPage from '../pages/FeedPage';
 import ProfilePage from '../pages/ProfilePage';
 import UsersPage from '../pages/UsersPage';
 import PostDetailPage from '../pages/PostDetailPage';
+import SettingsPage from '../pages/SettingsPage';
 
 export default function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export default function AppRouter() {
             <Route path="feed" element={<FeedPage />} />
             <Route path="profile/:id" element={<ProfilePage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="post/:id" element={<PostDetailPage />} />
           </Route>
 
