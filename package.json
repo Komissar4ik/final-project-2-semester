@@ -5,9 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "npm --prefix backend run start:dev",
     "build": "tsc -b && vite build",
+    "build:frontend": "tsc -b && vite build",
+    "build:backend": "npm --prefix backend run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:backend": "npm --prefix backend run lint",
+    "preview": "vite preview",
+    "prisma:generate": "npm --prefix backend run prisma:generate",
+    "prisma:migrate": "npm --prefix backend run prisma:migrate",
+    "prisma:studio": "npm --prefix backend run prisma:studio"
   },
   "dependencies": {
     "clsx": "^2.1.1",
