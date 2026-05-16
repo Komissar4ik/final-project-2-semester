@@ -1,0 +1,3 @@
+ALTER TYPE "AuthProvider" ADD VALUE 'LOCAL';
+
+ALTER TABLE "User" ADD COLUMN "passwordHash" TEXT;

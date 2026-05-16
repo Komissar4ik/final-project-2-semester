@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Send } from 'lucide-react';
@@ -11,16 +11,21 @@ import PageTransition from '../app/PageTransition';
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { posts, comments, currentUser, addComment } = useAppStore();
+  const { posts, comments, currentUser, addComment, loadPostDetails, error } = useAppStore();
   const [commentText, setCommentText] = useState('');
 
-  // TODO: GET /api/posts/:id
+  useEffect(() => {
+    if (id) {
+      void loadPostDetails(id);
+    }
+  }, [id, loadPostDetails]);
+
   const post = posts.find((p) => p.id === id);
   const postComments = comments.filter((c) => c.postId === id);
 
   const handleSubmit = () => {
     if (!commentText.trim() || !id) return;
-    addComment(id, commentText);
+    void addComment(id, commentText);
     setCommentText('');
   };
 
@@ -41,6 +46,12 @@ export default function PostDetailPage() {
         </Link>
 
         <PostCard post={post} expanded />
+
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+            {error}
+          </div>
+        )}
 
         {/* Comments section */}
         <div className="rounded-2xl border border-tbank-border bg-white p-5 shadow-card dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none">

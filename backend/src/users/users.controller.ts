@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCookieAuth,
@@ -16,6 +16,13 @@ import { UsersService } from './users.service';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get public users list' })
+  @ApiOkResponse({ description: 'Users with profiles and counters.' })
+  findAll(@Query('search') search?: string) {
+    return this.usersService.findAll(search);
+  }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)

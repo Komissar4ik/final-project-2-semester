@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Users, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,12 +10,19 @@ import { cn } from '../lib/utils';
 type Tab = 'all' | 'following';
 
 export default function UsersPage() {
-  const { allUsers, followedUserIds } = useAppStore();
+  const { allUsers, followedUserIds, loadUsers, isLoadingUsers, error } = useAppStore();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<Tab>('all');
   const navigate = useNavigate();
 
-  // TODO: GET /api/users?search={query}
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadUsers(search);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [loadUsers, search]);
+
   const filtered = allUsers
     .filter((u) => (tab === 'following' ? followedUserIds.has(u.id) : true))
     .filter(
@@ -84,8 +91,8 @@ export default function UsersPage() {
 
         {filtered.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 text-stone-500 dark:text-white/30">
-            <p className="text-lg mb-2">No users found</p>
-            <p className="text-sm">Try a different search query</p>
+            <p className="text-lg mb-2">{isLoadingUsers ? 'Loading people...' : 'No users found'}</p>
+            <p className="text-sm">{error ?? 'Try a different search query'}</p>
           </motion.div>
         ) : (
           <div className="space-y-3">

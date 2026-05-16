@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ImagePlus, Send, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
@@ -8,17 +8,22 @@ import Button from '../components/Button';
 import PageTransition from '../app/PageTransition';
 
 export default function FeedPage() {
-  const { posts, currentUser, addPost } = useAppStore();
+  const { posts, currentUser, addPost, loadFeed, isLoadingFeed, error } = useAppStore();
   const [newPostText, setNewPostText] = useState('');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    void loadFeed();
+  }, [loadFeed]);
 
   const handlePost = async () => {
     if (!newPostText.trim()) return;
     setIsPosting(true);
-    // TODO: POST /api/posts { content }
-    await new Promise((r) => setTimeout(r, 300));
-    addPost(newPostText);
+    await addPost(newPostText, selectedImage ?? undefined);
     setNewPostText('');
+    setSelectedImage(null);
     setIsPosting(false);
   };
 
@@ -51,9 +56,20 @@ export default function FeedPage() {
                 className="w-full bg-transparent text-sm text-tbank-black placeholder-stone-400 outline-none resize-none leading-relaxed dark:text-white dark:placeholder-white/30"
               />
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-tbank-border/70 dark:border-white/[0.06]">
-                <button className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-tbank-black dark:text-white/30 dark:hover:text-white/60 transition-colors">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => setSelectedImage(event.target.files?.[0] ?? null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-tbank-black dark:text-white/30 dark:hover:text-white/60 transition-colors"
+                >
                   <ImagePlus size={15} />
-                  Add image
+                  {selectedImage ? selectedImage.name : 'Add image'}
                 </button>
                 <Button
                   variant="primary"
@@ -69,9 +85,21 @@ export default function FeedPage() {
           </div>
         </motion.div>
 
-        {sortedPosts.map((post, i) => (
-          <PostCard key={post.id} post={post} index={i} />
-        ))}
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+            {error}
+          </div>
+        )}
+
+        {isLoadingFeed ? (
+          <div className="py-16 text-center text-sm text-stone-500 dark:text-white/40">Loading feed...</div>
+        ) : sortedPosts.length === 0 ? (
+          <div className="py-16 text-center text-sm text-stone-500 dark:text-white/40">
+            No posts yet. Create the first one.
+          </div>
+        ) : (
+          sortedPosts.map((post, i) => <PostCard key={post.id} post={post} index={i} />)
+        )}
       </div>
     </PageTransition>
   );

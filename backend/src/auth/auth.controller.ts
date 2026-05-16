@@ -12,7 +12,9 @@ import {
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { LoginDto } from './dto/login.dto';
 import { OAuthCallbackDto } from './dto/oauth-callback.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from './types/authenticated-request';
 
@@ -20,6 +22,34 @@ import type { AuthenticatedRequest } from './types/authenticated-request';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  @ApiOperation({ summary: 'Register with email and password' })
+  @ApiBody({ type: RegisterDto })
+  @ApiCreatedResponse({ type: AuthResponseDto })
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.register(dto);
+    this.setAuthCookie(response, result.accessToken);
+
+    return result;
+  }
+
+  @Post('login')
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiBody({ type: LoginDto })
+  @ApiOkResponse({ type: AuthResponseDto })
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.login(dto);
+    this.setAuthCookie(response, result.accessToken);
+
+    return result;
+  }
 
   @Post('oauth/callback')
   @ApiOperation({
@@ -34,14 +64,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.authService.loginWithOAuth(dto);
-
-    response.cookie('access_token', result.accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: this.authService.getCookieMaxAge(),
-      path: '/',
-    });
+    this.setAuthCookie(response, result.accessToken);
 
     return result;
   }
@@ -63,5 +86,15 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'JWT token is missing or invalid.' })
   me(@Req() request: AuthenticatedRequest) {
     return this.authService.getCurrentUser(request.user.id);
+  }
+
+  private setAuthCookie(response: Response, accessToken: string) {
+    response.cookie('access_token', accessToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: this.authService.getCookieMaxAge(),
+      path: '/',
+    });
   }
 }

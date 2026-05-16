@@ -5,6 +5,40 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  findAll(search?: string) {
+    const query = search?.trim();
+
+    return this.prisma.user.findMany({
+      where: query
+        ? {
+            OR: [
+              { displayName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } },
+              { profile: { bio: { contains: query, mode: 'insensitive' } } },
+            ],
+          }
+        : undefined,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: true,
+        _count: {
+          select: {
+            posts: true,
+            followers: true,
+            following: true,
+          },
+        },
+      },
+    });
+  }
+
   async findMe(userId: string) {
     return this.findById(userId);
   }

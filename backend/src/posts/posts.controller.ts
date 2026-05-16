@@ -1,8 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiBody,
+  ApiConsumes,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
@@ -10,6 +26,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname } from 'node:path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/types/authenticated-request';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -37,6 +55,55 @@ export class PostsController {
   @ApiOkResponse({ description: 'Posts ordered from newest to oldest.' })
   findAll() {
     return this.postsService.findAll();
+  }
+
+  @Post('upload-image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: 'uploads/posts',
+        filename: (_request, file, callback) => {
+          const extension = extname(file.originalname) || '.jpg';
+          callback(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+        },
+      }),
+      fileFilter: (_request, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          callback(new BadRequestException('Only image files are allowed.'), false);
+          return;
+        }
+
+        callback(null, true);
+      },
+      limits: {
+        fileSize: 8 * 1024 * 1024,
+      },
+    }),
+  )
+  @ApiBearerAuth()
+  @ApiCookieAuth('access_token')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['image'],
+    },
+  })
+  @ApiOperation({ summary: 'Upload an image for a post' })
+  @ApiOkResponse({ description: 'Public image URL.' })
+  uploadImage(@UploadedFile() file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Image file is required.');
+    }
+
+    return { imageUrl: `/uploads/posts/${file.filename}` };
   }
 
   @Get(':id')

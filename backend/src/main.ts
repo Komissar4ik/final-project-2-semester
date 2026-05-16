@@ -13,6 +13,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
+  mkdirSync(join(process.cwd(), 'uploads', 'posts'), { recursive: true });
 
   app.setGlobalPrefix('api');
   app.use(cookieParser());

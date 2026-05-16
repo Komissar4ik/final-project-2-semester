@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 import { Grid3X3, List } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import ProfileHeader from '../components/ProfileHeader';
 import PostCard from '../components/PostCard';
@@ -12,10 +12,17 @@ type ViewMode = 'list' | 'grid';
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const { currentUser, allUsers, posts } = useAppStore();
+  const { currentUser, allUsers, posts, loadProfile, loadFeed, error } = useAppStore();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const user = id === 'me' ? currentUser : allUsers.find((u) => u.id === id);
+
+  useEffect(() => {
+    if (id && id !== 'me') {
+      void loadProfile(id);
+    }
+    void loadFeed();
+  }, [id, loadFeed, loadProfile]);
 
   if (!user) {
     return (
@@ -33,6 +40,12 @@ export default function ProfilePage() {
     <PageTransition>
       <div className="max-w-2xl mx-auto space-y-6">
         <ProfileHeader user={user} isCurrentUser={isCurrentUser} />
+
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+            {error}
+          </div>
+        )}
 
         <div>
           <div className="flex items-center justify-between mb-4">

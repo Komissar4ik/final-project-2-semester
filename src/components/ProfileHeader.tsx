@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
+import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, ExternalLink, Calendar, BadgeCheck, Edit2, X, Check, Camera, ImagePlus } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { formatCount, readImageFileAsDataUrl } from '../lib/utils';
 import Avatar from './Avatar';
 import Button from './Button';
-import type { User } from '../types';
+import type { EditProfileData, User } from '../types';
 
 interface ProfileHeaderProps {
   user: User;
@@ -18,26 +19,30 @@ const inputClass =
   ' dark:bg-white/[0.07] dark:border-white/[0.12] dark:text-white dark:focus:border-brand/60 transition-all';
 
 export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHeaderProps) {
-  const { followedUserIds, toggleFollow, updateProfile, isEditingProfile, setEditingProfile } = useAppStore();
+  const { followedUserIds, toggleFollow, updateProfile, isEditingProfile, setEditingProfile, isSavingProfile } = useAppStore();
   const isFollowing = followedUserIds.has(user.id);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [mediaError, setMediaError] = useState<string | null>(null);
-
-  const [editData, setEditData] = useState({
-    displayName: user.displayName,
-    bio: user.bio,
-    location: user.location ?? '',
-    website: user.website ?? '',
-    avatar: user.avatar,
-    banner: user.banner ?? '',
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const { register, handleSubmit, reset, setValue, watch } = useForm<EditProfileData>({
+    defaultValues: {
+      displayName: user.displayName,
+      bio: user.bio,
+      location: user.location ?? '',
+      website: user.website ?? '',
+      avatar: user.avatar,
+      banner: user.banner ?? '',
+    },
   });
+  const editData = watch();
 
   const openEdit = () => {
     setMediaError(null);
-    setEditData({
+    setAvatarFile(null);
+    reset({
       displayName: user.displayName,
       bio: user.bio,
       location: user.location ?? '',
@@ -50,6 +55,7 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
 
   const cancelEdit = () => {
     setMediaError(null);
+    setAvatarFile(null);
     setEditingProfile(false);
   };
 
@@ -60,7 +66,8 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
     try {
       setMediaError(null);
       const dataUrl = await readImageFileAsDataUrl(file);
-      setEditData((d) => ({ ...d, avatar: dataUrl }));
+      setAvatarFile(file);
+      setValue('avatar', dataUrl, { shouldDirty: true });
     } catch (err) {
       setMediaError(err instanceof Error ? err.message : 'Could not load image');
     }
@@ -73,16 +80,26 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
     try {
       setMediaError(null);
       const dataUrl = await readImageFileAsDataUrl(file);
-      setEditData((d) => ({ ...d, banner: dataUrl }));
+      setValue('banner', dataUrl, { shouldDirty: true });
     } catch (err) {
       setMediaError(err instanceof Error ? err.message : 'Could not load image');
     }
   };
 
   const bannerPreview =
-    isCurrentUser && isEditingProfile ? editData.banner.trim() || undefined : user.banner;
+    isCurrentUser && isEditingProfile ? editData.banner?.trim() || undefined : user.banner;
   const avatarPreview =
     isCurrentUser && isEditingProfile ? editData.avatar : user.avatar;
+
+  const onSubmit = async (data: EditProfileData) => {
+    await updateProfile(
+      {
+        ...data,
+        avatar: data.avatar?.trim() || user.avatar,
+      },
+      avatarFile,
+    );
+  };
 
   return (
     <div className="rounded-3xl border border-tbank-border bg-white shadow-card overflow-hidden dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none">
@@ -114,7 +131,7 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
             </button>
             <button
               type="button"
-              onClick={() => setEditData((d) => ({ ...d, banner: '' }))}
+              onClick={() => setValue('banner', '', { shouldDirty: true })}
               className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium bg-white/90 text-tbank-black shadow-sm hover:bg-white dark:bg-[#111214]/90 dark:text-white"
             >
               Reset to gradient
@@ -165,14 +182,11 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
                     variant="primary"
                     size="sm"
                     icon={<Check size={14} />}
-                    onClick={() =>
-                      updateProfile({
-                        ...editData,
-                        avatar: editData.avatar.trim() || user.avatar,
-                      })
-                    }
+                    type="submit"
+                    form="profile-edit-form"
+                    disabled={isSavingProfile}
                   >
-                    Save
+                    {isSavingProfile ? 'Saving...' : 'Save'}
                   </Button>
                 </>
               ) : (
@@ -190,7 +204,15 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
 
         <AnimatePresence mode="wait">
           {isEditingProfile && isCurrentUser ? (
-            <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3 mb-4">
+            <motion.form
+              id="profile-edit-form"
+              key="edit"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3 mb-4"
+              onSubmit={(event) => void handleSubmit(onSubmit)(event)}
+            >
               {mediaError && (
                 <p className="text-sm text-rose-600 dark:text-rose-400">{mediaError}</p>
               )}
@@ -199,48 +221,43 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   value={editData.avatar.startsWith('data:') ? '' : editData.avatar}
-                  onChange={(e) => setEditData({ ...editData, avatar: e.target.value })}
+                  onChange={(e) => setValue('avatar', e.target.value, { shouldDirty: true })}
                   placeholder="Avatar image URL (optional)"
                   className={inputClass}
                 />
                 <input
-                  value={editData.banner.startsWith('data:') ? '' : editData.banner}
-                  onChange={(e) => setEditData({ ...editData, banner: e.target.value })}
+                  value={editData.banner?.startsWith('data:') ? '' : editData.banner}
+                  onChange={(e) => setValue('banner', e.target.value, { shouldDirty: true })}
                   placeholder="Cover image URL (optional)"
                   className={inputClass}
                 />
               </div>
               <p className="text-xs text-stone-500 dark:text-white/35">
                 Upload photos by clicking the avatar or cover, or paste a direct image link.{' '}
-                {/* TODO: replace data URLs with URLs from POST /api/users/me/avatar and /banner */}
               </p>
 
               <input
-                value={editData.displayName}
-                onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
                 className={`${inputClass} text-lg font-bold font-display`}
+                {...register('displayName', { required: true, minLength: 2 })}
               />
               <textarea
-                value={editData.bio}
-                onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
                 rows={3}
                 className={`${inputClass} resize-none`}
+                {...register('bio')}
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
-                  value={editData.location}
-                  onChange={(e) => setEditData({ ...editData, location: e.target.value })}
                   placeholder="Location"
                   className={inputClass}
+                  {...register('location')}
                 />
                 <input
-                  value={editData.website}
-                  onChange={(e) => setEditData({ ...editData, website: e.target.value })}
                   placeholder="Website URL"
                   className={inputClass}
+                  {...register('website')}
                 />
               </div>
-            </motion.div>
+            </motion.form>
           ) : (
             <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex items-center gap-2 mb-0.5">

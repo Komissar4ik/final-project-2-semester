@@ -1,8 +1,25 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: BodyInit | Record<string, unknown>;
 };
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function toAbsoluteMediaUrl(url?: string | null) {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+  return `${API_ORIGIN}${url.startsWith('/') ? url : `/${url}`}`;
+}
 
 export async function apiRequest<TResponse>(
   path: string,
@@ -24,7 +41,20 @@ export async function apiRequest<TResponse>(
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+    let message = `API request failed with status ${response.status}`;
+
+    try {
+      const errorBody = (await response.json()) as { message?: string | string[] };
+      if (Array.isArray(errorBody.message)) {
+        message = errorBody.message.join(', ');
+      } else if (errorBody.message) {
+        message = errorBody.message;
+      }
+    } catch {
+      // Keep the generic status message when the backend returns no JSON body.
+    }
+
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {

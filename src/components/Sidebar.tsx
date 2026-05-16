@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, User, Users, Settings, LogOut, BadgeCheck } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { cn } from '../lib/utils';
 import Avatar from './Avatar';
 
@@ -27,7 +28,13 @@ function TBankLogo() {
 
 export default function Sidebar() {
   const { currentUser } = useAppStore();
+  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/', { replace: true });
+  };
 
   return (
     <motion.aside
@@ -87,9 +94,8 @@ export default function Sidebar() {
             </>
           )}
         </NavLink>
-        {/* TODO: DELETE /api/auth/session */}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => void handleLogout()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm
           text-stone-500 hover:text-rose-600 hover:bg-rose-50
           dark:text-white/40 dark:hover:text-rose-400 dark:hover:bg-rose-500/[0.08] transition-all duration-200"

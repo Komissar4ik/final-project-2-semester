@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 import type { User, Post, Comment, EditProfileData } from '../types';
 import { currentUser, mockUsers, mockPosts, mockComments } from '../data/mock';
+import { socialApi } from '../api/socialApi';
+import { useAuthStore } from './useAuthStore';
 
 // ─── Store Shape ───────────────────────────────────────────────────────────────
 interface AppState {
   // Auth / current user
   currentUser: User;
+  isBootstrapping: boolean;
+  isLoadingFeed: boolean;
+  isLoadingUsers: boolean;
+  isSavingProfile: boolean;
+  error: string | null;
 
   // Users
   allUsers: User[];
@@ -22,16 +29,71 @@ interface AppState {
   isEditingProfile: boolean;
 
   // Actions
-  toggleFollow: (userId: string) => void;
-  toggleLike: (postId: string) => void;
-  addComment: (postId: string, content: string) => void;
-  addPost: (content: string) => void;
-  updateProfile: (data: EditProfileData) => void;
+  setCurrentUser: (user: User) => void;
+  bootstrapApp: (user?: User | null) => Promise<void>;
+  loadFeed: () => Promise<void>;
+  loadUsers: (search?: string) => Promise<void>;
+  loadPostDetails: (postId: string) => Promise<void>;
+  loadProfile: (userId: string) => Promise<User | null>;
+  toggleFollow: (userId: string) => Promise<void>;
+  toggleLike: (postId: string) => Promise<void>;
+  addComment: (postId: string, content: string) => Promise<void>;
+  addPost: (content: string, image?: File) => Promise<void>;
+  updateProfile: (data: EditProfileData, avatarFile?: File | null) => Promise<void>;
   setEditingProfile: (value: boolean) => void;
+  clearError: () => void;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Something went wrong.';
+}
+
+function mergeUsers(existing: User[], incoming: User[]) {
+  const byId = new Map(existing.map((user) => [user.id, user]));
+  incoming.forEach((user) => byId.set(user.id, { ...byId.get(user.id), ...user }));
+  return [...byId.values()];
+}
+
+function applyFollowLocal(state: AppState, userId: string) {
+  const next = new Set(state.followedUserIds);
+  const isFollowing = next.has(userId);
+  isFollowing ? next.delete(userId) : next.add(userId);
+
+  const updatedUsers = state.allUsers.map((u) =>
+    u.id === userId
+      ? { ...u, followersCount: u.followersCount + (isFollowing ? -1 : 1) }
+      : u,
+  );
+
+  return {
+    followedUserIds: next,
+    allUsers: updatedUsers,
+    currentUser: {
+      ...state.currentUser,
+      followingCount: state.currentUser.followingCount + (isFollowing ? -1 : 1),
+    },
+  };
+}
+
+function applyLikeLocal(state: AppState, postId: string) {
+  const next = new Set(state.likedPostIds);
+  const isLiked = next.has(postId);
+  isLiked ? next.delete(postId) : next.add(postId);
+
+  const updatedPosts = state.posts.map((p) =>
+    p.id === postId ? { ...p, likesCount: p.likesCount + (isLiked ? -1 : 1) } : p,
+  );
+
+  return { likedPostIds: next, posts: updatedPosts };
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   currentUser,
+  isBootstrapping: false,
+  isLoadingFeed: false,
+  isLoadingUsers: false,
+  isSavingProfile: false,
+  error: null,
   allUsers: mockUsers,
 
   // Pre-follow a few users for demo richness
@@ -43,95 +105,197 @@ export const useAppStore = create<AppState>((set, get) => ({
   comments: mockComments,
   isEditingProfile: false,
 
+  setCurrentUser: (user) =>
+    set((state) => ({
+      currentUser: user,
+      allUsers: state.allUsers.filter((candidate) => candidate.id !== user.id),
+    })),
+
+  bootstrapApp: async (providedUser) => {
+    set({ isBootstrapping: true, error: null });
+
+    try {
+      const authUser = providedUser ?? useAuthStore.getState().user ?? (await useAuthStore.getState().hydrateSession());
+
+      if (authUser) {
+        get().setCurrentUser(authUser);
+        await Promise.all([get().loadFeed(), get().loadUsers()]);
+
+        const following = await socialApi.getFollowing(authUser.id);
+        set({
+          followedUserIds: new Set(following.map((user) => user.id)),
+          allUsers: mergeUsers(get().allUsers, following),
+        });
+      }
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    } finally {
+      set({ isBootstrapping: false });
+    }
+  },
+
+  loadFeed: async () => {
+    set({ isLoadingFeed: true, error: null });
+
+    try {
+      const { posts, users } = await socialApi.getFeed();
+      set((state) => ({
+        posts,
+        allUsers: mergeUsers(state.allUsers, users).filter((user) => user.id !== state.currentUser.id),
+      }));
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    } finally {
+      set({ isLoadingFeed: false });
+    }
+  },
+
+  loadUsers: async (search) => {
+    set({ isLoadingUsers: true, error: null });
+
+    try {
+      const users = await socialApi.getUsers(search);
+      set((state) => ({
+        allUsers: users.filter((user) => user.id !== state.currentUser.id),
+      }));
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    } finally {
+      set({ isLoadingUsers: false });
+    }
+  },
+
+  loadPostDetails: async (postId) => {
+    set({ error: null });
+
+    try {
+      const { post, comments, users } = await socialApi.getPost(postId);
+      set((state) => ({
+        posts: [post, ...state.posts.filter((candidate) => candidate.id !== post.id)],
+        comments: [
+          ...state.comments.filter((comment) => comment.postId !== postId),
+          ...comments,
+        ],
+        allUsers: mergeUsers(state.allUsers, users).filter((user) => user.id !== state.currentUser.id),
+      }));
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    }
+  },
+
+  loadProfile: async (userId) => {
+    set({ error: null });
+
+    try {
+      const user = await socialApi.getUser(userId);
+      if (user.id === get().currentUser.id) {
+        get().setCurrentUser(user);
+        useAuthStore.getState().setUser(user);
+      } else {
+        set((state) => ({ allUsers: mergeUsers(state.allUsers, [user]) }));
+      }
+      return user;
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+      return null;
+    }
+  },
+
   // ── toggleFollow ──────────────────────────────────────────────────────────
-  // TODO: POST /api/users/:id/follow  |  DELETE /api/users/:id/follow
-  toggleFollow: (userId) =>
-    set((state) => {
-      const next = new Set(state.followedUserIds);
-      const isFollowing = next.has(userId);
-      isFollowing ? next.delete(userId) : next.add(userId);
+  toggleFollow: async (userId) => {
+    const wasFollowing = get().followedUserIds.has(userId);
 
-      const updatedUsers = state.allUsers.map((u) =>
-        u.id === userId
-          ? { ...u, followersCount: u.followersCount + (isFollowing ? -1 : 1) }
-          : u,
-      );
+    set((state) => applyFollowLocal(state, userId));
 
-      return {
-        followedUserIds: next,
-        allUsers: updatedUsers,
-        currentUser: {
-          ...state.currentUser,
-          followingCount: state.currentUser.followingCount + (isFollowing ? -1 : 1),
-        },
-      };
-    }),
+    try {
+      if (wasFollowing) {
+        await socialApi.unfollowUser(userId);
+      } else {
+        await socialApi.followUser(userId);
+      }
+    } catch (error) {
+      set((state) => applyFollowLocal(state, userId));
+      set({ error: getErrorMessage(error) });
+    }
+  },
 
   // ── toggleLike ────────────────────────────────────────────────────────────
-  // TODO: POST /api/posts/:id/like  |  DELETE /api/posts/:id/like
-  toggleLike: (postId) =>
-    set((state) => {
-      const next = new Set(state.likedPostIds);
-      const isLiked = next.has(postId);
-      isLiked ? next.delete(postId) : next.add(postId);
+  toggleLike: async (postId) => {
+    const wasLiked = get().likedPostIds.has(postId);
 
-      const updatedPosts = state.posts.map((p) =>
-        p.id === postId ? { ...p, likesCount: p.likesCount + (isLiked ? -1 : 1) } : p,
-      );
+    set((state) => applyLikeLocal(state, postId));
 
-      return { likedPostIds: next, posts: updatedPosts };
-    }),
+    try {
+      if (wasLiked) {
+        await socialApi.unlikePost(postId);
+      } else {
+        await socialApi.likePost(postId);
+      }
+    } catch (error) {
+      set((state) => applyLikeLocal(state, postId));
+      set({ error: getErrorMessage(error) });
+    }
+  },
 
   // ── addComment ────────────────────────────────────────────────────────────
-  // TODO: POST /api/posts/:id/comments  { content }
-  addComment: (postId, content) => {
+  addComment: async (postId, content) => {
     if (!content.trim()) return;
-    const newComment: Comment = {
-      id: `c${Date.now()}`,
-      postId,
-      authorId: get().currentUser.id,
-      content: content.trim(),
-      likesCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({
-      comments: [...state.comments, newComment],
-      posts: state.posts.map((p) =>
-        p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p,
-      ),
-    }));
+
+    try {
+      const { comment, users } = await socialApi.createComment(postId, content);
+      set((state) => ({
+        comments: [...state.comments, comment],
+        posts: state.posts.map((p) =>
+          p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p,
+        ),
+        allUsers: mergeUsers(state.allUsers, users),
+      }));
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    }
   },
 
   // ── addPost ───────────────────────────────────────────────────────────────
-  // TODO: POST /api/posts  { content }
-  addPost: (content) => {
+  addPost: async (content, image) => {
     if (!content.trim()) return;
-    const newPost: Post = {
-      id: `p${Date.now()}`,
-      authorId: get().currentUser.id,
-      content: content.trim(),
-      likesCount: 0,
-      commentsCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({
-      posts: [newPost, ...state.posts],
-      currentUser: { ...state.currentUser, postsCount: state.currentUser.postsCount + 1 },
-    }));
+
+    try {
+      const { post, users } = await socialApi.createPost(content, image);
+      set((state) => ({
+        posts: [post, ...state.posts],
+        allUsers: mergeUsers(state.allUsers, users),
+        currentUser: { ...state.currentUser, postsCount: state.currentUser.postsCount + 1 },
+      }));
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    }
   },
 
   // ── updateProfile ─────────────────────────────────────────────────────────
-  // TODO: PATCH /api/users/me  { displayName, bio, location, website, avatarUrl, bannerUrl }
-  // TODO: POST /api/users/me/avatar  (multipart) — вернёт публичный URL вместо data: URL
-  // TODO: POST /api/users/me/banner  (multipart)
-  updateProfile: (data) =>
-    set((state) => {
-      const next = { ...state.currentUser, ...data };
-      if (data.banner !== undefined) {
-        next.banner = data.banner.trim() || undefined;
+  updateProfile: async (data, avatarFile) => {
+    set({ isSavingProfile: true, error: null });
+
+    try {
+      let next = await socialApi.updateProfile(data);
+      if (avatarFile) {
+        next = await socialApi.uploadAvatar(avatarFile);
       }
-      return { currentUser: next, isEditingProfile: false };
-    }),
+
+      const currentUser = {
+        ...get().currentUser,
+        ...next,
+        banner: data.banner?.trim() || get().currentUser.banner,
+      };
+
+      set({ currentUser, isEditingProfile: false });
+      useAuthStore.getState().setUser(currentUser);
+    } catch (error) {
+      set({ error: getErrorMessage(error) });
+    } finally {
+      set({ isSavingProfile: false });
+    }
+  },
 
   setEditingProfile: (value) => set({ isEditingProfile: value }),
+  clearError: () => set({ error: null }),
 }));
