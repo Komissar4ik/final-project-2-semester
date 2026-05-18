@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Layout from './Layout';
 import LandingPage from '../pages/LandingPage';
@@ -37,8 +37,10 @@ function ProtectedRoute() {
 }
 
 export default function AppRouter() {
+  const basename = import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '');
+
   return (
-    <HashRouter>
+    <BrowserRouter basename={basename}>
       <AnimatePresence mode="wait">
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -59,6 +61,6 @@ export default function AppRouter() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
