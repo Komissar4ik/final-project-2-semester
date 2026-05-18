@@ -18,6 +18,16 @@
 - загрузка аватара через `multipart/form-data`;
 - Swagger-документация API.
 
+## Соответствие требованиям допуска
+
+- Линтинг: `npm run lint` и `npm run lint:backend`.
+- Тесты: Jest unit-тесты запускаются через `npm test`.
+- Coverage: `npm run test:coverage`, текущий порог Jest - не ниже 30% по statements, branches, functions и lines.
+- CI/CD: `.gitlab-ci.yml` запускает lint, tests, coverage, build frontend/backend и deploy frontend artifact в GitLab Pages.
+- Функциональность: приложение содержит больше 3 маршрутов, включая динамические `/app/profile/:id` и `/app/post/:id`.
+- Мобильная версия: layout использует responsive Tailwind-классы, отдельную mobile navigation и адаптивные панели.
+- Оформление: правила коммитов, code-style и code review описаны в `CONTRIBUTING.md`.
+
 ## Архитектура
 
 Схема архитектуры: [Excalidraw](https://excalidraw.com/#json=HHboGUAB7mwVEkBYiylls,2hGihBeK_R4OB1LnF9enNA).
@@ -258,6 +268,14 @@ npm run build:backend
 npm run lint:backend
 npm run prisma:generate
 npm run prisma:migrate
+```
+
+Тесты и полная проверка:
+
+```bash
+npm test
+npm run test:coverage
+npm run validate
 ```
 
 Docker:

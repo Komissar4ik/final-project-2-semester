@@ -1,0 +1,60 @@
+image: node:22
+
+stages:
+  - validate
+  - test
+  - build
+  - deploy
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - backend/node_modules/
+
+lint:
+  stage: validate
+  script:
+    - npm ci
+    - npm --prefix backend ci
+    - npm run lint
+    - npm run lint:backend
+
+test:
+  stage: test
+  script:
+    - npm ci
+    - npm --prefix backend ci
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+build:
+  stage: build
+  needs: ["lint", "test"]
+  script:
+    - npm ci
+    - npm --prefix backend ci
+    - npm run build:frontend
+    - npm run build:backend
+  artifacts:
+    paths:
+      - dist/
+      - backend/dist/
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  needs: ["build"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - rm -rf public
+    - cp -r dist public
+  artifacts:
+    paths:
+      - public

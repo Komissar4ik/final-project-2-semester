@@ -5,7 +5,15 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'backend/dist', 'backend/node_modules'] },
+  {
+    ignores: [
+      'coverage',
+      'dist',
+      'node_modules',
+      'backend/dist',
+      'backend/node_modules',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -26,6 +34,18 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+  {
+    files: ['**/*.spec.ts'],
+    languageOptions: {
+      globals: globals.jest,
+    },
+  },
+  {
+    files: ['*.cjs'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 );
