@@ -7,6 +7,7 @@ import PostCard from '../components/PostCard';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
 import PageTransition from '../app/PageTransition';
+import UserCard from '../components/UserCard';
 
 export default function FeedPage() {
   const { posts, currentUser, allUsers, addPost, loadFeed, isLoadingFeed, error } = useAppStore();
@@ -54,6 +55,24 @@ export default function FeedPage() {
         return searchableText.includes(normalizedQuery);
       })
     : sortedPosts;
+  const searchableUsers = allUsers.filter((user) => user.id !== currentUser.id);
+  const filteredUsers = normalizedQuery
+    ? searchableUsers.filter((user) => {
+        const searchableText = [
+          user.displayName,
+          user.username,
+          user.bio,
+          user.location,
+          user.website,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
+      })
+    : [];
+  const searchResultCount = filteredPosts.length + filteredUsers.length;
 
   return (
     <PageTransition>
@@ -70,7 +89,7 @@ export default function FeedPage() {
             <div className="flex min-w-0 items-center gap-2 text-stone-600 dark:text-white/55">
               <Search size={15} className="flex-shrink-0 text-brand" />
               <span className="truncate">
-                {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'} found for "{searchQuery}"
+                {searchResultCount} {searchResultCount === 1 ? 'result' : 'results'} found for "{searchQuery}"
               </span>
             </div>
             <button
@@ -142,12 +161,44 @@ export default function FeedPage() {
           <div className="py-16 text-center text-sm text-stone-500 dark:text-white/40">
             No posts yet. Create the first one.
           </div>
-        ) : filteredPosts.length === 0 ? (
+        ) : searchQuery && searchResultCount === 0 ? (
           <div className="py-16 text-center text-sm text-stone-500 dark:text-white/40">
             Nothing matched your search.
           </div>
         ) : (
-          filteredPosts.map((post, i) => <PostCard key={post.id} post={post} index={i} />)
+          <>
+            {searchQuery && filteredUsers.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-tbank-black dark:text-white">People</h2>
+                  <span className="text-xs text-stone-500 dark:text-white/35">
+                    {filteredUsers.length} {filteredUsers.length === 1 ? 'match' : 'matches'}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {filteredUsers.map((user, i) => (
+                    <UserCard
+                      key={user.id}
+                      user={user}
+                      index={i}
+                      onClick={() => navigate(`/app/profile/${user.id}`)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {searchQuery && filteredPosts.length > 0 && (
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-tbank-black dark:text-white">Posts</h2>
+                <span className="text-xs text-stone-500 dark:text-white/35">
+                  {filteredPosts.length} {filteredPosts.length === 1 ? 'match' : 'matches'}
+                </span>
+              </div>
+            )}
+
+            {filteredPosts.map((post, i) => <PostCard key={post.id} post={post} index={i} />)}
+          </>
         )}
       </div>
     </PageTransition>

@@ -1,8 +1,6 @@
 import { motion } from 'framer-motion';
 import { UserPlus, TrendingUp } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { socialApi, type TrendingTag } from '../api/socialApi';
 import { useAppStore } from '../store/useAppStore';
 import { formatCount } from '../lib/utils';
 import Avatar from './Avatar';
@@ -11,39 +9,27 @@ import Button from './Button';
 const panelClass =
   'rounded-2xl border border-tbank-border bg-white p-4 shadow-card dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none';
 
+const hashtagPattern = /#[\p{L}\p{N}_-]+/gu;
+
 export default function RightPanel() {
-  const { allUsers, followedUserIds, toggleFollow } = useAppStore();
+  const { allUsers, followedUserIds, posts, toggleFollow } = useAppStore();
   const suggestions = allUsers.filter((u) => !followedUserIds.has(u.id)).slice(0, 4);
-  const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
-  const [isLoadingTrending, setLoadingTrending] = useState(true);
-  const [trendingError, setTrendingError] = useState<string | null>(null);
+  const tagCounts = new Map<string, number>();
 
-  useEffect(() => {
-    let isMounted = true;
+  posts.forEach((post) => {
+    const tags = new Set(
+      [...post.content.matchAll(hashtagPattern)].map(([tag]) => tag.slice(1).toLowerCase()),
+    );
 
-    socialApi
-      .getTrendingTags()
-      .then((tags) => {
-        if (isMounted) {
-          setTrendingTags(tags);
-          setTrendingError(null);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setTrendingError('Unable to load trends');
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoadingTrending(false);
-        }
-      });
+    tags.forEach((tag) => {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    });
+  });
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const trendingTags = [...tagCounts.entries()]
+    .map(([tag, postsCount]) => ({ tag, postsCount }))
+    .sort((a, b) => b.postsCount - a.postsCount || a.tag.localeCompare(b.tag))
+    .slice(0, 5);
 
   return (
     <motion.aside
@@ -60,19 +46,11 @@ export default function RightPanel() {
           <h3 className="text-sm font-semibold text-tbank-black dark:text-white">Trending</h3>
         </div>
         <div className="space-y-2">
-          {isLoadingTrending && (
-            <p className="py-1 text-xs text-stone-500 dark:text-white/30">Loading trends...</p>
-          )}
-
-          {!isLoadingTrending && trendingError && (
-            <p className="py-1 text-xs text-rose-500 dark:text-rose-300">{trendingError}</p>
-          )}
-
-          {!isLoadingTrending && !trendingError && trendingTags.length === 0 && (
+          {trendingTags.length === 0 && (
             <p className="py-1 text-xs text-stone-500 dark:text-white/30">No hashtags yet</p>
           )}
 
-          {!isLoadingTrending && !trendingError && trendingTags.map(({ tag, postsCount }, i) => (
+          {trendingTags.map(({ tag, postsCount }, i) => (
             <div key={tag} className="flex items-center justify-between group py-1">
               <div>
                 <p className="text-sm font-medium text-stone-800 group-hover:text-tbank-black dark:text-white/80 dark:group-hover:text-brand transition-colors">
