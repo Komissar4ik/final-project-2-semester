@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
-import { Grid3X3, List } from 'lucide-react';
+import { Bookmark, Grid3X3, List } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import ProfileHeader from '../components/ProfileHeader';
@@ -9,11 +9,13 @@ import PageTransition from '../app/PageTransition';
 import { cn } from '../lib/utils';
 
 type ViewMode = 'list' | 'grid';
+type ProfileTab = 'posts' | 'saved';
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const { currentUser, allUsers, posts, loadProfile, loadFeed, error } = useAppStore();
+  const { currentUser, allUsers, posts, bookmarkedPostIds, loadProfile, loadFeed, error } = useAppStore();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
 
   const user = id === 'me' ? currentUser : allUsers.find((u) => u.id === id);
 
@@ -35,6 +37,14 @@ export default function ProfilePage() {
   const isCurrentUser = user.id === currentUser.id || id === 'me';
   // TODO: GET /api/users/:id/posts
   const userPosts = posts.filter((p) => p.authorId === user.id || (isCurrentUser && p.authorId === 'me'));
+  const savedPosts = posts.filter((post) => bookmarkedPostIds.has(post.id));
+  const visiblePosts = activeTab === 'saved' ? savedPosts : userPosts;
+
+  useEffect(() => {
+    if (!isCurrentUser && activeTab === 'saved') {
+      setActiveTab('posts');
+    }
+  }, [activeTab, isCurrentUser]);
 
   return (
     <PageTransition>
@@ -48,10 +58,40 @@ export default function ProfilePage() {
         )}
 
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-stone-500 dark:text-white/50 uppercase tracking-wider">
-              Posts · {userPosts.length}
-            </h2>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-1 rounded-2xl border border-tbank-border bg-white p-1 dark:border-white/[0.08] dark:bg-white/[0.04]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('posts')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                  activeTab === 'posts'
+                    ? 'bg-brand text-tbank-black shadow-[0_2px_8px_rgba(255,221,45,0.35)] dark:shadow-glow-dark'
+                    : 'text-stone-500 hover:bg-brand/10 hover:text-tbank-black dark:text-white/45 dark:hover:text-white',
+                )}
+              >
+                Posts
+                <span className="text-xs opacity-70">{userPosts.length}</span>
+              </button>
+
+              {isCurrentUser && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('saved')}
+                  className={cn(
+                    'flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                    activeTab === 'saved'
+                      ? 'bg-brand text-tbank-black shadow-[0_2px_8px_rgba(255,221,45,0.35)] dark:shadow-glow-dark'
+                      : 'text-stone-500 hover:bg-brand/10 hover:text-tbank-black dark:text-white/45 dark:hover:text-white',
+                  )}
+                >
+                  <Bookmark size={14} className={cn(activeTab === 'saved' && 'fill-tbank-black')} />
+                  Saved
+                  <span className="text-xs opacity-70">{savedPosts.length}</span>
+                </button>
+              )}
+            </div>
+
             <div className="flex items-center gap-1 rounded-xl border border-tbank-border dark:border-white/[0.09] p-1">
               {(['list', 'grid'] as const).map((mode) => (
                 <button
@@ -70,17 +110,17 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {userPosts.length === 0 ? (
+          {visiblePosts.length === 0 ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 text-stone-500 dark:text-white/30">
-              <p>No posts yet</p>
+              <p>{activeTab === 'saved' ? 'No saved posts yet' : 'No posts yet'}</p>
             </motion.div>
           ) : viewMode === 'list' ? (
             <div className="space-y-4">
-              {userPosts.map((post, i) => <PostCard key={post.id} post={post} index={i} />)}
+              {visiblePosts.map((post, i) => <PostCard key={post.id} post={post} index={i} />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {userPosts.map((post, i) => (
+              {visiblePosts.map((post, i) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, scale: 0.9 }}
