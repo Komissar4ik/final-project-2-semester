@@ -26,6 +26,14 @@ export default function ProfilePage() {
     void loadFeed();
   }, [id, loadFeed, loadProfile]);
 
+  useEffect(() => {
+    const isOwnProfile = id === 'me' || id === currentUser.id;
+
+    if (!isOwnProfile && activeTab === 'saved') {
+      setActiveTab('posts');
+    }
+  }, [activeTab, currentUser.id, id]);
+
   if (!user) {
     return (
       <div className="text-center py-24 text-stone-500 dark:text-white/40">
@@ -39,12 +47,6 @@ export default function ProfilePage() {
   const userPosts = posts.filter((p) => p.authorId === user.id || (isCurrentUser && p.authorId === 'me'));
   const savedPosts = posts.filter((post) => bookmarkedPostIds.has(post.id));
   const visiblePosts = activeTab === 'saved' ? savedPosts : userPosts;
-
-  useEffect(() => {
-    if (!isCurrentUser && activeTab === 'saved') {
-      setActiveTab('posts');
-    }
-  }, [activeTab, isCurrentUser]);
 
   return (
     <PageTransition>
