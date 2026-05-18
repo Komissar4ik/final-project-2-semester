@@ -146,7 +146,7 @@ export default function AuthPage() {
           </form>
 
           <h2 className="text-xs font-semibold text-stone-500 dark:text-white/50 text-center mb-4 uppercase tracking-widest">
-            Or use demo OAuth
+            Or use OAuth
           </h2>
 
           <div className="space-y-3">
@@ -195,7 +195,7 @@ export default function AuthPage() {
         >
           <p className="text-xs text-stone-400 dark:text-white/25 mb-2">or</p>
           <Button variant="ghost" size="sm" onClick={() => void handleAuth('GOOGLE')} disabled={isLoading}>
-            Continue as demo user →
+            Continue with Google →
           </Button>
         </motion.div>
       </div>

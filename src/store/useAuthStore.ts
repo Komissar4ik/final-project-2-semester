@@ -51,9 +51,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
 
     try {
-      const user = await authApi.loginWithDemoProvider(provider);
-      set({ user, status: 'authenticated', error: null });
-      return user;
+      authApi.redirectToProvider(provider);
+      return await new Promise<User>(() => {});
     } catch (error) {
       set({ user: null, status: 'anonymous', error: getErrorMessage(error) });
       throw error;

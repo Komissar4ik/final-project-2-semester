@@ -1,4 +1,5 @@
 import { apiClient } from './httpClient';
+import { API_BASE_URL } from './httpClient';
 import { mapBackendUser, type BackendUser } from './mappers';
 import type { User } from '../types';
 
@@ -14,24 +15,6 @@ interface AuthResponse {
   accessToken: string;
 }
 
-const demoProfiles: Record<OAuthProvider, { email: string; displayName: string; avatarUrl: string }> = {
-  GOOGLE: {
-    email: 'student.google@example.com',
-    displayName: 'Google Student',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=google-student',
-  },
-  GITHUB: {
-    email: 'student.github@example.com',
-    displayName: 'GitHub Student',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=github-student',
-  },
-  YANDEX: {
-    email: 'student.yandex@example.com',
-    displayName: 'Yandex Student',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yandex-student',
-  },
-};
-
 export const authApi = {
   async register(data: { email: string; displayName: string; password: string }): Promise<User> {
     await apiClient.post<AuthResponse>('/auth/register', data);
@@ -43,16 +26,8 @@ export const authApi = {
     return this.me();
   },
 
-  async loginWithDemoProvider(provider: OAuthProvider): Promise<User> {
-    const profile = demoProfiles[provider];
-
-    await apiClient.post<AuthResponse>('/auth/oauth/callback', {
-      provider,
-      providerUserId: `demo-${provider.toLowerCase()}-student`,
-      ...profile,
-    });
-
-    return this.me();
+  redirectToProvider(provider: OAuthProvider) {
+    window.location.assign(`${API_BASE_URL}/auth/${provider.toLowerCase()}`);
   },
 
   async me(): Promise<User> {
