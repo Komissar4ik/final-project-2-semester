@@ -17,6 +17,7 @@ lint:
   script:
     - npm ci
     - npm --prefix backend ci
+    - npm run prisma:generate
     - npm run lint
     - npm run lint:backend
 
@@ -25,6 +26,7 @@ test:
   script:
     - npm ci
     - npm --prefix backend ci
+    - npm run prisma:generate
     - npm run test:coverage
   coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
   artifacts:
@@ -39,6 +41,7 @@ build:
   script:
     - npm ci
     - npm --prefix backend ci
+    - npm run prisma:generate
     - npm run build:frontend
     - npm run build:backend
   artifacts:
