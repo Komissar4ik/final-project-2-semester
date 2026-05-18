@@ -33,9 +33,10 @@ async function bootstrap() {
     .split(',')
     .map((url) => url.trim())
     .filter(Boolean);
+  const frontendOrigins = frontendUrls.map((url) => new URL(url).origin);
 
   app.enableCors({
-    origin: frontendUrls.length === 1 ? frontendUrls[0] : frontendUrls,
+    origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
     credentials: true,
   });
 
