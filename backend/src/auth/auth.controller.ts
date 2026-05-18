@@ -20,7 +20,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { CookieOptions, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
@@ -144,7 +144,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Clear the internal auth cookie' })
   @ApiOkResponse({ schema: { example: { success: true } } })
   logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('access_token', { path: '/' });
+    response.clearCookie('access_token', this.getAuthCookieOptions());
     return { success: true };
   }
 
@@ -160,15 +160,25 @@ export class AuthController {
   }
 
   private setAuthCookie(response: Response, accessToken: string) {
-    const secureCookie = this.configService.get<string>('AUTH_COOKIE_SECURE');
-
     response.cookie('access_token', accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: secureCookie ? secureCookie === 'true' : process.env.NODE_ENV === 'production',
+      ...this.getAuthCookieOptions(),
       maxAge: this.authService.getCookieMaxAge(),
-      path: '/',
     });
+  }
+
+  private getAuthCookieOptions(): CookieOptions {
+    const secureCookie = this.configService.get<string>('AUTH_COOKIE_SECURE');
+    const secure = secureCookie ? secureCookie === 'true' : process.env.NODE_ENV === 'production';
+    const sameSite =
+      this.configService.get<CookieOptions['sameSite']>('AUTH_COOKIE_SAME_SITE') ??
+      (secure ? 'none' : 'lax');
+
+    return {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: '/',
+    };
   }
 
   private getFrontendRedirectUrl(path: string) {
