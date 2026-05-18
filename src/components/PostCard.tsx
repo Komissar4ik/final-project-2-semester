@@ -15,9 +15,19 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, index = 0, expanded = false }: PostCardProps) {
-  const { allUsers, currentUser, likedPostIds, toggleLike, addComment, comments } = useAppStore();
+  const {
+    allUsers,
+    currentUser,
+    likedPostIds,
+    bookmarkedPostIds,
+    toggleLike,
+    toggleBookmark,
+    addComment,
+    comments,
+  } = useAppStore();
   const [showComments, setShowComments] = useState(expanded);
   const [commentText, setCommentText] = useState('');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
 
   const author =
     post.authorId === currentUser.id
@@ -27,12 +37,38 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
   if (!author) return null;
 
   const isLiked = likedPostIds.has(post.id);
+  const isBookmarked = bookmarkedPostIds.has(post.id);
   const postComments = comments.filter((c) => c.postId === post.id);
 
   const handleSubmitComment = () => {
     if (!commentText.trim()) return;
     addComment(post.id, commentText);
     setCommentText('');
+  };
+
+  const handleShare = async () => {
+    const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const postUrl = `${window.location.origin}${basePath}/app/post/${post.id}`;
+    const shareData = {
+      title: `${author.displayName} on Nexus`,
+      text: post.content,
+      url: postUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(postUrl);
+        setShareStatus('copied');
+        window.setTimeout(() => setShareStatus('idle'), 1600);
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        setShareStatus('copied');
+        window.setTimeout(() => setShareStatus('idle'), 1600);
+      }
+    }
   };
 
   return (
@@ -63,8 +99,18 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
             @{author.username} · {formatRelativeTime(post.createdAt)}
           </p>
         </div>
-        <button className="text-stone-400 hover:text-stone-700 dark:text-white/30 dark:hover:text-white/60 transition-colors p-1">
+        <button
+          type="button"
+          onClick={handleShare}
+          aria-label="Share post"
+          className="relative text-stone-400 hover:text-stone-700 dark:text-white/30 dark:hover:text-white/60 transition-colors p-1"
+        >
           <Share2 size={14} />
+          {shareStatus === 'copied' && (
+            <span className="absolute right-0 top-7 rounded-lg bg-tbank-black px-2 py-1 text-[10px] font-medium text-white shadow-lg dark:bg-white dark:text-tbank-black">
+              Copied
+            </span>
+          )}
         </button>
       </div>
 
@@ -135,8 +181,19 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
           >
             View post
           </Link>
-          <button className="p-1.5 rounded-xl text-stone-400 hover:text-tbank-black hover:bg-tbank-gray dark:text-white/30 dark:hover:text-white dark:hover:bg-white/[0.07] transition-all">
-            <Bookmark size={14} />
+          <button
+            type="button"
+            onClick={() => toggleBookmark(post.id)}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Save bookmark'}
+            title={isBookmarked ? 'Saved' : 'Save post'}
+            className={cn(
+              'p-1.5 rounded-xl transition-all',
+              isBookmarked
+                ? 'text-tbank-black bg-brand/20 dark:text-brand dark:bg-brand/10'
+                : 'text-stone-400 hover:text-tbank-black hover:bg-tbank-gray dark:text-white/30 dark:hover:text-white dark:hover:bg-white/[0.07]',
+            )}
+          >
+            <Bookmark size={14} className={cn(isBookmarked && 'fill-brand')} />
           </button>
         </div>
       </div>

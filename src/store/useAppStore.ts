@@ -21,6 +21,7 @@ interface AppState {
   // Posts
   posts: Post[];
   likedPostIds: Set<string>;
+  bookmarkedPostIds: Set<string>;
 
   // Comments
   comments: Comment[];
@@ -37,6 +38,7 @@ interface AppState {
   loadProfile: (userId: string) => Promise<User | null>;
   toggleFollow: (userId: string) => Promise<void>;
   toggleLike: (postId: string) => Promise<void>;
+  toggleBookmark: (postId: string) => void;
   addComment: (postId: string, content: string) => Promise<void>;
   addPost: (content: string, image?: File) => Promise<void>;
   updateProfile: (data: EditProfileData, avatarFile?: File | null) => Promise<void>;
@@ -101,6 +103,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   posts: mockPosts,
   likedPostIds: new Set(['p2', 'p4']),
+  bookmarkedPostIds: new Set(),
 
   comments: mockComments,
   isEditingProfile: false,
@@ -235,6 +238,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       set((state) => applyLikeLocal(state, postId));
       set({ error: getErrorMessage(error) });
     }
+  },
+
+  toggleBookmark: (postId) => {
+    set((state) => {
+      const next = new Set(state.bookmarkedPostIds);
+
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+
+      return { bookmarkedPostIds: next };
+    });
   },
 
   // ── addComment ────────────────────────────────────────────────────────────
