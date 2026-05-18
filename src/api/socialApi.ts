@@ -10,6 +10,11 @@ import {
   type BackendUser,
 } from './mappers';
 
+export interface TrendingTag {
+  tag: string;
+  postsCount: number;
+}
+
 type BackendProfileResponse = BackendProfile & {
   user: BackendUser;
 };
@@ -72,6 +77,10 @@ export const socialApi = {
       posts: posts.map(mapBackendPost),
       users: collectAuthors(posts),
     };
+  },
+
+  async getTrendingTags(): Promise<TrendingTag[]> {
+    return apiClient.get<TrendingTag[]>('/posts/trending-tags');
   },
 
   async getPost(id: string): Promise<{ post: Post; comments: Comment[]; users: User[] }> {

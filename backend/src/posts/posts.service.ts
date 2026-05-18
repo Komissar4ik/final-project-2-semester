@@ -19,6 +19,8 @@ const postInclude = {
   },
 };
 
+const hashtagPattern = /#[\p{L}\p{N}_-]+/gu;
+
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -39,6 +41,32 @@ export class PostsService {
       orderBy: { createdAt: 'desc' },
       include: postInclude,
     });
+  }
+
+  async findTrendingTags(limit = 5) {
+    const posts = await this.prisma.post.findMany({
+      select: {
+        id: true,
+        content: true,
+      },
+    });
+
+    const tagCounts = new Map<string, number>();
+
+    posts.forEach((post) => {
+      const tags = new Set(
+        [...post.content.matchAll(hashtagPattern)].map(([tag]) => tag.slice(1).toLowerCase()),
+      );
+
+      tags.forEach((tag) => {
+        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+      });
+    });
+
+    return [...tagCounts.entries()]
+      .map(([tag, postsCount]) => ({ tag, postsCount }))
+      .sort((a, b) => b.postsCount - a.postsCount || a.tag.localeCompare(b.tag))
+      .slice(0, limit);
   }
 
   async findById(id: string) {

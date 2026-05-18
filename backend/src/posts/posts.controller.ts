@@ -57,6 +57,13 @@ export class PostsController {
     return this.postsService.findAll();
   }
 
+  @Get('trending-tags')
+  @ApiOperation({ summary: 'Get most used hashtags in posts' })
+  @ApiOkResponse({ description: 'Top hashtags ordered by post count.' })
+  findTrendingTags() {
+    return this.postsService.findTrendingTags();
+  }
+
   @Post('upload-image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
