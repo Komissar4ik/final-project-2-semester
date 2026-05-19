@@ -7,14 +7,40 @@ import MobileNav from '../components/MobileNav';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
+import { settingsApi } from '../api/settingsApi';
+import { useThemeStore } from '../store/useThemeStore';
 
 export default function Layout() {
   const authUser = useAuthStore((state) => state.user);
   const { bootstrapApp, isBootstrapping } = useAppStore();
+  const setThemeMode = useThemeStore((state) => state.setMode);
 
   useEffect(() => {
     void bootstrapApp(authUser);
   }, [authUser, bootstrapApp]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    let isMounted = true;
+
+    async function syncAccountSettings() {
+      try {
+        const settings = await settingsApi.getMe();
+        if (isMounted) {
+          setThemeMode(settings.theme);
+        }
+      } catch {
+        // Keep the locally stored theme if account settings cannot be loaded.
+      }
+    }
+
+    void syncAccountSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUser, setThemeMode]);
 
   return (
     <div className="min-h-screen font-sans text-tbank-black dark:text-white">

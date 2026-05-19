@@ -1,9 +1,12 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Lock, Palette, Settings } from 'lucide-react';
+import { Bell, Lock, LogOut, Palette, Save, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import PageTransition from '../app/PageTransition';
-import ThemeToggle from '../components/ThemeToggle';
 import { cn } from '../lib/utils';
+import { settingsApi, type UpdateUserSettings } from '../api/settingsApi';
+import { useAuthStore } from '../store/useAuthStore';
+import { useThemeStore, type ThemeMode } from '../store/useThemeStore';
 
 function ToggleRow({
   label,
@@ -69,10 +72,99 @@ function Section({
   );
 }
 
+const defaultSettings: UpdateUserSettings = {
+  theme: 'light',
+  emailDigestEnabled: true,
+  pushEnabled: false,
+  publicProfile: true,
+};
+
 export default function SettingsPage() {
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [pushNotif, setPushNotif] = useState(false);
-  const [profilePublic, setProfilePublic] = useState(true);
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
+  const setThemeMode = useThemeStore((state) => state.setMode);
+  const [settings, setSettings] = useState<UpdateUserSettings>(defaultSettings);
+  const [savedSettings, setSavedSettings] = useState<UpdateUserSettings>(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSettings() {
+      setIsLoading(true);
+      setMessage(null);
+
+      try {
+        const next = await settingsApi.getMe();
+        const formSettings = {
+          theme: next.theme,
+          emailDigestEnabled: next.emailDigestEnabled,
+          pushEnabled: next.pushEnabled,
+          publicProfile: next.publicProfile,
+        };
+
+        if (!isMounted) return;
+
+        setSettings(formSettings);
+        setSavedSettings(formSettings);
+        setThemeMode(next.theme);
+      } catch (error) {
+        if (!isMounted) return;
+        setMessage(error instanceof Error ? error.message : 'Failed to load settings.');
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setThemeMode]);
+
+  const updateSetting = <Key extends keyof UpdateUserSettings>(
+    key: Key,
+    value: UpdateUserSettings[Key],
+  ) => {
+    setSettings((current) => ({ ...current, [key]: value }));
+
+    if (key === 'theme') {
+      setThemeMode(value as ThemeMode);
+    }
+  };
+
+  const saveSettings = async () => {
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      const next = await settingsApi.updateMe(settings);
+      const formSettings = {
+        theme: next.theme,
+        emailDigestEnabled: next.emailDigestEnabled,
+        pushEnabled: next.pushEnabled,
+        publicProfile: next.publicProfile,
+      };
+
+      setSettings(formSettings);
+      setSavedSettings(formSettings);
+      setThemeMode(next.theme);
+      setMessage('Settings saved.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save settings.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/', { replace: true });
+  };
 
   return (
     <PageTransition>
@@ -81,18 +173,44 @@ export default function SettingsPage() {
           <Settings size={18} className="text-brand" />
           <h1 className="text-xl font-bold text-tbank-black dark:text-white font-display">Settings</h1>
         </div>
-        <p className="text-sm text-stone-500 dark:text-white/45 -mt-2 mb-2">
-          Mock UI — позже можно связать с <code className="text-xs bg-tbank-gray dark:bg-white/10 px-1.5 py-0.5 rounded">PATCH /api/me</code> и
-          предпочтениями.
-        </p>
+        {message ? (
+          <p className="rounded-xl border border-tbank-border bg-white px-4 py-3 text-sm text-stone-600 shadow-card dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/60 dark:shadow-none">
+            {message}
+          </p>
+        ) : null}
 
         <Section icon={Palette} title="Appearance">
           <div className="flex items-center justify-between gap-4 pt-2">
             <div>
               <p className="text-sm font-medium text-tbank-black dark:text-white">Theme</p>
-              <p className="text-xs text-stone-500 mt-1 dark:text-white/40">Light or dark interface</p>
+              <p className="text-xs text-stone-500 mt-1 dark:text-white/40">Saved to your account</p>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => updateSetting('theme', 'light')}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-sm transition-colors',
+                  settings.theme === 'light'
+                    ? 'border-brand bg-brand text-tbank-black'
+                    : 'border-tbank-border bg-white text-stone-600 hover:border-brand/60 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/60',
+                )}
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSetting('theme', 'dark')}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-sm transition-colors',
+                  settings.theme === 'dark'
+                    ? 'border-brand bg-brand text-tbank-black'
+                    : 'border-tbank-border bg-white text-stone-600 hover:border-brand/60 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/60',
+                )}
+              >
+                Dark
+              </button>
+            </div>
           </div>
         </Section>
 
@@ -100,15 +218,15 @@ export default function SettingsPage() {
           <div className="mt-2">
             <ToggleRow
               label="Email digest"
-              description="Weekly summary of activity"
-              pressed={emailNotif}
-              onToggle={() => setEmailNotif((v) => !v)}
+              description="Weekly account activity summary"
+              pressed={settings.emailDigestEnabled}
+              onToggle={() => updateSetting('emailDigestEnabled', !settings.emailDigestEnabled)}
             />
             <ToggleRow
               label="Push notifications"
               description="Likes, comments, new followers"
-              pressed={pushNotif}
-              onToggle={() => setPushNotif((v) => !v)}
+              pressed={settings.pushEnabled}
+              onToggle={() => updateSetting('pushEnabled', !settings.pushEnabled)}
             />
           </div>
         </Section>
@@ -118,11 +236,31 @@ export default function SettingsPage() {
             <ToggleRow
               label="Public profile"
               description="Others can see your posts and followers"
-              pressed={profilePublic}
-              onToggle={() => setProfilePublic((v) => !v)}
+              pressed={settings.publicProfile}
+              onToggle={() => updateSetting('publicProfile', !settings.publicProfile)}
             />
           </div>
         </Section>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => void saveSettings()}
+            disabled={isLoading || isSaving || !isDirty}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-tbank-black shadow-glow transition-opacity disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-glow-dark"
+          >
+            <Save size={16} />
+            {isSaving ? 'Saving...' : 'Save settings'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15"
+          >
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </div>
       </div>
     </PageTransition>
   );

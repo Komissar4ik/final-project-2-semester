@@ -9,6 +9,7 @@ import { FollowsModule } from '../follows/follows.module';
 import { LikesModule } from '../likes/likes.module';
 import { PostsModule } from '../posts/posts.module';
 import { ProfilesModule } from '../profiles/profiles.module';
+import { SettingsModule } from '../settings/settings.module';
 import { UsersModule } from '../users/users.module';
 import { RequestLoggerMiddleware } from '../common/logger/request-logger.middleware';
 
@@ -26,6 +27,7 @@ import { RequestLoggerMiddleware } from '../common/logger/request-logger.middlew
     CommentsModule,
     LikesModule,
     FollowsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
