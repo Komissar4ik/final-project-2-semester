@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ExternalLink, Calendar, BadgeCheck, Edit2, X, Check, Camera, ImagePlus, Lock } from 'lucide-react';
+import { MapPin, ExternalLink, Calendar, BadgeCheck, Edit2, X, Check, Camera, ImagePlus } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { formatCount, readImageFileAsDataUrl } from '../lib/utils';
 import Avatar from './Avatar';
@@ -21,7 +21,6 @@ const inputClass =
 export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHeaderProps) {
   const { followedUserIds, toggleFollow, updateProfile, isEditingProfile, setEditingProfile, isSavingProfile } = useAppStore();
   const isFollowing = followedUserIds.has(user.id);
-  const canShowProfileDetails = isCurrentUser || user.publicProfile !== false;
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -266,57 +265,46 @@ export default function ProfileHeader({ user, isCurrentUser = false }: ProfileHe
                 {user.isVerified && <BadgeCheck size={18} className="text-brand" />}
               </div>
               <p className="text-sm text-stone-500 dark:text-white/40 mb-3">@{user.username}</p>
-              {canShowProfileDetails ? (
-                <>
-                  <p className="text-sm text-stone-700 dark:text-white/70 leading-relaxed mb-4">{user.bio}</p>
-                  <div className="flex flex-wrap gap-4 text-xs text-stone-500 dark:text-white/40 mb-4">
-                    {user.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin size={12} />
-                        {user.location}
-                      </span>
-                    )}
-                    {user.website && (
-                      <a
-                        href={user.website}
-                        className="flex items-center gap-1 text-stone-700 hover:text-tbank-black dark:text-brand/70 dark:hover:text-brand transition-colors"
-                      >
-                        <ExternalLink size={12} />
-                        {user.website.replace('https://', '')}
-                      </a>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Calendar size={12} />
-                      Joined {new Date(user.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="mb-4 flex items-center gap-2 rounded-2xl border border-tbank-border bg-tbank-gray px-4 py-3 text-sm text-stone-600 dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-white/55">
-                  <Lock size={16} className="text-brand" />
-                  This profile is private.
-                </div>
-              )}
+              <p className="text-sm text-stone-700 dark:text-white/70 leading-relaxed mb-4">{user.bio}</p>
+              <div className="flex flex-wrap gap-4 text-xs text-stone-500 dark:text-white/40 mb-4">
+                {user.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={12} />
+                    {user.location}
+                  </span>
+                )}
+                {user.website && (
+                  <a
+                    href={user.website}
+                    className="flex items-center gap-1 text-stone-700 hover:text-tbank-black dark:text-brand/70 dark:hover:text-brand transition-colors"
+                  >
+                    <ExternalLink size={12} />
+                    {user.website.replace('https://', '')}
+                  </a>
+                )}
+                <span className="flex items-center gap-1">
+                  <Calendar size={12} />
+                  Joined {new Date(user.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {canShowProfileDetails ? (
-          <div className="flex gap-6 pt-4 border-t border-tbank-border/70 dark:border-white/[0.07] text-sm">
-            <div>
-              <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.postsCount)}</span>{' '}
-              <span className="text-stone-500 dark:text-white/40">posts</span>
-            </div>
-            <div>
-              <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.followersCount)}</span>{' '}
-              <span className="text-stone-500 dark:text-white/40">followers</span>
-            </div>
-            <div>
-              <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.followingCount)}</span>{' '}
-              <span className="text-stone-500 dark:text-white/40">following</span>
-            </div>
+        <div className="flex gap-6 pt-4 border-t border-tbank-border/70 dark:border-white/[0.07] text-sm">
+          <div>
+            <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.postsCount)}</span>{' '}
+            <span className="text-stone-500 dark:text-white/40">posts</span>
           </div>
-        ) : null}
+          <div>
+            <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.followersCount)}</span>{' '}
+            <span className="text-stone-500 dark:text-white/40">followers</span>
+          </div>
+          <div>
+            <span className="font-semibold text-tbank-black dark:text-white">{formatCount(user.followingCount)}</span>{' '}
+            <span className="text-stone-500 dark:text-white/40">following</span>
+          </div>
+        </div>
       </div>
     </div>
   );

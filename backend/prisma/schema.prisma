@@ -32,7 +32,6 @@ model User {
   updatedAt      DateTime      @updatedAt
 
   profile        Profile?
-  settings       UserSettings?
   posts          Post[]
   comments       Comment[]
   likes          Like[]
@@ -41,19 +40,6 @@ model User {
 
   @@unique([provider, providerUserId])
   @@index([email])
-}
-
-model UserSettings {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  theme              String   @default("light")
-  emailDigestEnabled Boolean  @default(true)
-  pushEnabled        Boolean  @default(false)
-  publicProfile      Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Profile {

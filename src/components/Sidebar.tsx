@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, User, Users, Settings, LogOut, BadgeCheck } from 'lucide-react';
+import { Home, User, Users, LogOut, BadgeCheck } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { cn } from '../lib/utils';
@@ -76,24 +76,6 @@ export default function Sidebar() {
 
       {/* Bottom actions */}
       <div className="space-y-1">
-        <NavLink
-          to="/app/settings"
-          className={({ isActive }) =>
-            cn(
-              'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-200',
-              isActive
-                ? 'bg-brand text-tbank-black shadow-[0_2px_8px_rgba(255,221,45,0.4)] dark:shadow-glow-dark'
-                : 'text-stone-500 hover:text-tbank-black hover:bg-tbank-gray/80 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/[0.05]',
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Settings size={16} className={isActive ? 'text-tbank-black' : ''} />
-              Settings
-            </>
-          )}
-        </NavLink>
         <button
           onClick={() => void handleLogout()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm

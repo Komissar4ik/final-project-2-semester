@@ -28,11 +28,6 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
         profile: true,
-        settings: {
-          select: {
-            publicProfile: true,
-          },
-        },
         _count: {
           select: {
             posts: true,
@@ -60,11 +55,6 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
         profile: true,
-        settings: {
-          select: {
-            publicProfile: true,
-          },
-        },
         _count: {
           select: {
             posts: true,
