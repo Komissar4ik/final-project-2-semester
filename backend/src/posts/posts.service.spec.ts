@@ -2,8 +2,10 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PostsService } from './posts.service';
 
 const prismaMock = {
+  $transaction: jest.fn((queries) => Promise.all(queries)),
   post: {
     create: jest.fn(),
+    count: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
@@ -56,6 +58,30 @@ describe('PostsService', () => {
     prismaMock.post.findUnique.mockResolvedValue(null);
 
     await expect(service.findById('missing')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns paginated posts', async () => {
+    prismaMock.post.findMany.mockResolvedValue([{ id: 'post-1' }]);
+    prismaMock.post.count.mockResolvedValue(21);
+
+    await expect(service.findAll({ page: 2, limit: 10 })).resolves.toEqual({
+      items: [{ id: 'post-1' }],
+      meta: {
+        page: 2,
+        limit: 10,
+        total: 21,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      },
+    });
+
+    expect(prismaMock.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 10,
+        take: 10,
+      }),
+    );
   });
 
   it('throws ForbiddenException when another user updates the post', async () => {

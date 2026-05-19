@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -23,6 +24,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -52,9 +54,14 @@ export class PostsController {
 
   @Get()
   @ApiOperation({ summary: 'Get posts feed' })
-  @ApiOkResponse({ description: 'Posts ordered from newest to oldest.' })
-  findAll() {
-    return this.postsService.findAll();
+  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number.' })
+  @ApiQuery({ name: 'limit', required: false, example: 20, description: 'Items per page, max 50.' })
+  @ApiOkResponse({ description: 'Paginated posts ordered from newest to oldest.' })
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.postsService.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('trending-tags')

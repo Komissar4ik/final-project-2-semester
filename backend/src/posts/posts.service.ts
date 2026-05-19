@@ -20,6 +20,28 @@ const postInclude = {
 };
 
 const hashtagPattern = /#[\p{L}\p{N}_-]+/gu;
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+}
+
+function normalizePagination({ page, limit }: PaginationOptions) {
+  const safePage = Number.isFinite(page) && page && page > 0 ? Math.floor(page) : DEFAULT_PAGE;
+  const safeLimit =
+    Number.isFinite(limit) && limit && limit > 0
+      ? Math.min(Math.floor(limit), MAX_LIMIT)
+      : DEFAULT_LIMIT;
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    skip: (safePage - 1) * safeLimit,
+  };
+}
 
 @Injectable()
 export class PostsService {
@@ -36,11 +58,31 @@ export class PostsService {
     });
   }
 
-  findAll() {
-    return this.prisma.post.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: postInclude,
-    });
+  async findAll(options: PaginationOptions = {}) {
+    const { page, limit, skip } = normalizePagination(options);
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: postInclude,
+      }),
+      this.prisma.post.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async findTrendingTags(limit = 5) {

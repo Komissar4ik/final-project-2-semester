@@ -15,6 +15,18 @@ export interface TrendingTag {
   postsCount: number;
 }
 
+interface PaginatedPostsResponse {
+  items: BackendPost[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 type BackendProfileResponse = BackendProfile & {
   user: BackendUser;
 };
@@ -72,7 +84,9 @@ export const socialApi = {
   },
 
   async getFeed(): Promise<{ posts: Post[]; users: User[] }> {
-    const posts = await apiClient.get<BackendPost[]>('/posts');
+    const response = await apiClient.get<BackendPost[] | PaginatedPostsResponse>('/posts');
+    const posts = Array.isArray(response) ? response : response.items;
+
     return {
       posts: posts.map(mapBackendPost),
       users: collectAuthors(posts),
