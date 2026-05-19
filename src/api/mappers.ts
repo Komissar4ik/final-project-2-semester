@@ -14,6 +14,9 @@ export interface BackendUser {
   avatarUrl?: string | null;
   createdAt?: string;
   profile?: BackendProfile | null;
+  settings?: {
+    publicProfile?: boolean;
+  } | null;
   _count?: {
     posts?: number;
     followers?: number;
@@ -64,6 +67,7 @@ export function mapBackendUser(user: BackendUser): User {
     followingCount: user._count?.following ?? 0,
     postsCount: user._count?.posts ?? 0,
     joinedAt: user.createdAt ?? new Date().toISOString(),
+    publicProfile: user.settings?.publicProfile ?? true,
   };
 }
 

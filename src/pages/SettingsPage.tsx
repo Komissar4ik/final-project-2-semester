@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Lock, LogOut, Palette, Save, Settings } from 'lucide-react';
+import { Lock, LogOut, Palette, Save, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageTransition from '../app/PageTransition';
 import { cn } from '../lib/utils';
@@ -74,8 +74,6 @@ function Section({
 
 const defaultSettings: UpdateUserSettings = {
   theme: 'light',
-  emailDigestEnabled: true,
-  pushEnabled: false,
   publicProfile: true,
 };
 
@@ -101,8 +99,6 @@ export default function SettingsPage() {
         const next = await settingsApi.getMe();
         const formSettings = {
           theme: next.theme,
-          emailDigestEnabled: next.emailDigestEnabled,
-          pushEnabled: next.pushEnabled,
           publicProfile: next.publicProfile,
         };
 
@@ -145,8 +141,6 @@ export default function SettingsPage() {
       const next = await settingsApi.updateMe(settings);
       const formSettings = {
         theme: next.theme,
-        emailDigestEnabled: next.emailDigestEnabled,
-        pushEnabled: next.pushEnabled,
         publicProfile: next.publicProfile,
       };
 
@@ -214,28 +208,11 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section icon={Bell} title="Notifications">
-          <div className="mt-2">
-            <ToggleRow
-              label="Email digest"
-              description="Weekly account activity summary"
-              pressed={settings.emailDigestEnabled}
-              onToggle={() => updateSetting('emailDigestEnabled', !settings.emailDigestEnabled)}
-            />
-            <ToggleRow
-              label="Push notifications"
-              description="Likes, comments, new followers"
-              pressed={settings.pushEnabled}
-              onToggle={() => updateSetting('pushEnabled', !settings.pushEnabled)}
-            />
-          </div>
-        </Section>
-
         <Section icon={Lock} title="Privacy">
           <div className="mt-2">
             <ToggleRow
               label="Public profile"
-              description="Others can see your posts and followers"
+              description="When disabled, other users cannot see your profile details or posts"
               pressed={settings.publicProfile}
               onToggle={() => updateSetting('publicProfile', !settings.publicProfile)}
             />

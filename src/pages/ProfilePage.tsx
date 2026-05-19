@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
-import { Bookmark, Grid3X3, List } from 'lucide-react';
+import { Bookmark, Grid3X3, List, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import ProfileHeader from '../components/ProfileHeader';
@@ -43,6 +43,7 @@ export default function ProfilePage() {
   }
 
   const isCurrentUser = user.id === currentUser.id || id === 'me';
+  const isPrivateProfile = !isCurrentUser && user.publicProfile === false;
   // TODO: GET /api/users/:id/posts
   const userPosts = posts.filter((p) => p.authorId === user.id || (isCurrentUser && p.authorId === 'me'));
   const savedPosts = posts.filter((post) => bookmarkedPostIds.has(post.id));
@@ -59,6 +60,23 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {isPrivateProfile ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-tbank-border bg-white p-8 text-center shadow-card dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none"
+          >
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/20 text-brand">
+              <Lock size={24} />
+            </div>
+            <h2 className="font-display text-xl font-bold text-tbank-black dark:text-white">
+              Private profile
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-stone-500 dark:text-white/45">
+              This user has hidden their profile details and posts from other users.
+            </p>
+          </motion.div>
+        ) : (
         <div>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-1 rounded-2xl border border-tbank-border bg-white p-1 dark:border-white/[0.08] dark:bg-white/[0.04]">
@@ -145,6 +163,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+        )}
       </div>
     </PageTransition>
   );

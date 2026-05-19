@@ -12,6 +12,7 @@ export interface User {
   postsCount: number;
   joinedAt: string;
   isVerified?: boolean;
+  publicProfile?: boolean;
 }
 
 export interface Post {

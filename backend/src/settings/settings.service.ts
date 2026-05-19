@@ -4,8 +4,13 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 const defaultSettings = {
   theme: 'light',
-  emailDigestEnabled: true,
-  pushEnabled: false,
+  publicProfile: true,
+};
+
+const settingsSelect = {
+  id: true,
+  userId: true,
+  theme: true,
   publicProfile: true,
 };
 
@@ -21,6 +26,7 @@ export class SettingsService {
         userId,
         ...defaultSettings,
       },
+      select: settingsSelect,
     });
   }
 
@@ -33,6 +39,7 @@ export class SettingsService {
         ...defaultSettings,
         ...dto,
       },
+      select: settingsSelect,
     });
   }
 }

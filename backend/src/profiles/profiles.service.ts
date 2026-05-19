@@ -19,6 +19,11 @@ export class ProfilesService {
             avatarUrl: true,
             createdAt: true,
             updatedAt: true,
+            settings: {
+              select: {
+                publicProfile: true,
+              },
+            },
           },
         },
       },
@@ -63,6 +68,11 @@ export class ProfilesService {
               avatarUrl: true,
               createdAt: true,
               updatedAt: true,
+              settings: {
+                select: {
+                  publicProfile: true,
+                },
+              },
             },
           },
         },

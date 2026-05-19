@@ -268,6 +268,11 @@ export class AuthService {
         createdAt: true,
         updatedAt: true,
         profile: true,
+        settings: {
+          select: {
+            publicProfile: true,
+          },
+        },
       },
     });
   }

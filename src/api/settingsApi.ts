@@ -5,14 +5,12 @@ export interface UserSettings {
   id: string;
   userId: string;
   theme: ThemeMode;
-  emailDigestEnabled: boolean;
-  pushEnabled: boolean;
   publicProfile: boolean;
 }
 
 export type UpdateUserSettings = Pick<
   UserSettings,
-  'theme' | 'emailDigestEnabled' | 'pushEnabled' | 'publicProfile'
+  'theme' | 'publicProfile'
 >;
 
 export const settingsApi = {

@@ -10,15 +10,5 @@ export class UpdateSettingsDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
-  emailDigestEnabled?: boolean;
-
-  @ApiPropertyOptional({ example: false })
-  @IsOptional()
-  @IsBoolean()
-  pushEnabled?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean()
   publicProfile?: boolean;
 }
