@@ -1,6 +1,6 @@
 # T-Nexus
 
-**Автор:** Глеб Поляков  
+**Автор:** Поляков Глеб Витальевич 
 **Курс:** курсовая работа на курсе "Т-Академия Фронтенда"  
 **Название веб-приложения:** T-Nexus
 
@@ -139,12 +139,4 @@ Backend деплоится отдельно на Render.
 
 В проекте используется TypeScript, ESLint, Jest, DTO-валидация на backend, модульная структура NestJS и компонентная структура React.
 
-Рекомендуемый формат коммитов:
-
-```text
-feat: add feature
-fix: repair bug
-docs: update readme
-test: add tests
-refactor: improve code structure
 ```
