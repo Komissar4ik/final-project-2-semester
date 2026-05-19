@@ -24,6 +24,7 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
     toggleBookmark,
     deletePost,
     addComment,
+    loadPostDetails,
     comments,
   } = useAppStore();
   const [showComments, setShowComments] = useState(expanded);
@@ -46,6 +47,18 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
     if (!commentText.trim()) return;
     addComment(post.id, commentText);
     setCommentText('');
+  };
+
+  const handleToggleComments = () => {
+    setShowComments((current) => {
+      const next = !current;
+
+      if (next && post.commentsCount > 0) {
+        void loadPostDetails(post.id);
+      }
+
+      return next;
+    });
   };
 
   const handleShare = async () => {
@@ -174,7 +187,7 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
         </motion.button>
 
         <button
-          onClick={() => setShowComments((v) => !v)}
+          onClick={handleToggleComments}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200',
             showComments

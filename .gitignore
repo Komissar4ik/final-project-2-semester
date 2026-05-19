@@ -38,3 +38,6 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+backend/env
+backend/.env
+.env
