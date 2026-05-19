@@ -126,6 +126,11 @@ export class PostsService {
                 avatarUrl: true,
               },
             },
+            _count: {
+              select: {
+                likes: true,
+              },
+            },
           },
         },
       },

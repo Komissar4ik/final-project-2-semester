@@ -25,6 +25,7 @@ interface AppState {
 
   // Comments
   comments: Comment[];
+  likedCommentIds: Set<string>;
 
   // Profile editing
   isEditingProfile: boolean;
@@ -38,9 +39,11 @@ interface AppState {
   loadProfile: (userId: string) => Promise<User | null>;
   toggleFollow: (userId: string) => Promise<void>;
   toggleLike: (postId: string) => Promise<void>;
+  toggleCommentLike: (commentId: string) => Promise<void>;
   toggleBookmark: (postId: string) => void;
   addComment: (postId: string, content: string) => Promise<void>;
   addPost: (content: string, image?: File) => Promise<void>;
+  deletePost: (postId: string) => Promise<void>;
   updateProfile: (data: EditProfileData, avatarFile?: File | null) => Promise<void>;
   setEditingProfile: (value: boolean) => void;
   clearError: () => void;
@@ -89,6 +92,20 @@ function applyLikeLocal(state: AppState, postId: string) {
   return { likedPostIds: next, posts: updatedPosts };
 }
 
+function applyCommentLikeLocal(state: AppState, commentId: string) {
+  const next = new Set(state.likedCommentIds);
+  const isLiked = next.has(commentId);
+  isLiked ? next.delete(commentId) : next.add(commentId);
+
+  const updatedComments = state.comments.map((comment) =>
+    comment.id === commentId
+      ? { ...comment, likesCount: Math.max(0, comment.likesCount + (isLiked ? -1 : 1)) }
+      : comment,
+  );
+
+  return { likedCommentIds: next, comments: updatedComments };
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   currentUser,
   isBootstrapping: false,
@@ -106,6 +123,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   bookmarkedPostIds: new Set(),
 
   comments: mockComments,
+  likedCommentIds: new Set(),
   isEditingProfile: false,
 
   setCurrentUser: (user) =>
@@ -254,6 +272,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  toggleCommentLike: async (commentId) => {
+    const wasLiked = get().likedCommentIds.has(commentId);
+
+    set((state) => applyCommentLikeLocal(state, commentId));
+
+    try {
+      if (wasLiked) {
+        await socialApi.unlikeComment(commentId);
+      } else {
+        await socialApi.likeComment(commentId);
+      }
+    } catch (error) {
+      set((state) => applyCommentLikeLocal(state, commentId));
+      set({ error: getErrorMessage(error) });
+    }
+  },
+
   // ── addComment ────────────────────────────────────────────────────────────
   addComment: async (postId, content) => {
     if (!content.trim()) return;
@@ -285,6 +320,47 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: getErrorMessage(error) });
+    }
+  },
+
+  deletePost: async (postId) => {
+    const { posts, comments, likedPostIds, bookmarkedPostIds } = get();
+    const post = posts.find((candidate) => candidate.id === postId);
+    const removedComments = comments.filter((comment) => comment.postId === postId);
+    const wasLiked = likedPostIds.has(postId);
+    const wasBookmarked = bookmarkedPostIds.has(postId);
+
+    if (!post) return;
+
+    set((state) => ({
+      posts: state.posts.filter((candidate) => candidate.id !== postId),
+      comments: state.comments.filter((comment) => comment.postId !== postId),
+      likedPostIds: new Set([...state.likedPostIds].filter((id) => id !== postId)),
+      bookmarkedPostIds: new Set([...state.bookmarkedPostIds].filter((id) => id !== postId)),
+      currentUser:
+        post.authorId === state.currentUser.id
+          ? { ...state.currentUser, postsCount: Math.max(0, state.currentUser.postsCount - 1) }
+          : state.currentUser,
+    }));
+
+    try {
+      await socialApi.deletePost(postId);
+    } catch (error) {
+      set((state) => ({
+        posts: [post, ...state.posts].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+        comments: [...state.comments, ...removedComments],
+        likedPostIds: wasLiked ? new Set([...state.likedPostIds, postId]) : state.likedPostIds,
+        bookmarkedPostIds: wasBookmarked
+          ? new Set([...state.bookmarkedPostIds, postId])
+          : state.bookmarkedPostIds,
+        currentUser:
+          post.authorId === state.currentUser.id
+            ? { ...state.currentUser, postsCount: state.currentUser.postsCount + 1 }
+            : state.currentUser,
+        error: getErrorMessage(error),
+      }));
     }
   },
 

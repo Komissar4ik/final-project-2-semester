@@ -10,6 +10,11 @@ const commentInclude = {
       avatarUrl: true,
     },
   },
+  _count: {
+    select: {
+      likes: true,
+    },
+  },
 };
 
 @Injectable()
@@ -66,5 +71,44 @@ export class CommentsService {
     await this.prisma.comment.delete({ where: { id } });
 
     return { deleted: true };
+  }
+
+  async like(id: string, userId: string) {
+    const comment = await this.prisma.comment.findUnique({ where: { id } });
+
+    if (!comment) {
+      throw new NotFoundException('Comment was not found.');
+    }
+
+    return this.prisma.commentLike.upsert({
+      where: {
+        commentId_userId: {
+          commentId: id,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        commentId: id,
+        userId,
+      },
+    });
+  }
+
+  async unlike(id: string, userId: string) {
+    const comment = await this.prisma.comment.findUnique({ where: { id } });
+
+    if (!comment) {
+      throw new NotFoundException('Comment was not found.');
+    }
+
+    await this.prisma.commentLike.deleteMany({
+      where: {
+        commentId: id,
+        userId,
+      },
+    });
+
+    return { liked: false };
   }
 }

@@ -10,6 +10,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/lib/**/*.ts',
     'backend/src/posts/**/*.service.ts',
+    'backend/src/comments/**/*.service.ts',
     'backend/src/auth/**/*.service.ts',
     '!**/*.module.ts',
     '!**/*.dto.ts',

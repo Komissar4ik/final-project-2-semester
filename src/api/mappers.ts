@@ -42,6 +42,9 @@ export interface BackendComment {
   content: string;
   createdAt: string;
   author?: BackendUser;
+  _count?: {
+    likes?: number;
+  };
 }
 
 function usernameFromUser(user: BackendUser) {
@@ -85,7 +88,7 @@ export function mapBackendComment(comment: BackendComment): Comment {
     postId: comment.postId,
     authorId: comment.authorId,
     content: comment.content,
-    likesCount: 0,
+    likesCount: comment._count?.likes ?? 0,
     createdAt: comment.createdAt,
   };
 }

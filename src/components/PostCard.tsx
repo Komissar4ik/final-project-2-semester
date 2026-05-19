@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, BadgeCheck, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BadgeCheck, Send, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { formatRelativeTime, formatCount, cn } from '../lib/utils';
@@ -22,6 +22,7 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
     bookmarkedPostIds,
     toggleLike,
     toggleBookmark,
+    deletePost,
     addComment,
     comments,
   } = useAppStore();
@@ -38,6 +39,7 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
 
   const isLiked = likedPostIds.has(post.id);
   const isBookmarked = bookmarkedPostIds.has(post.id);
+  const canDelete = author.id === currentUser.id;
   const postComments = comments.filter((c) => c.postId === post.id);
 
   const handleSubmitComment = () => {
@@ -112,6 +114,17 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
             </span>
           )}
         </button>
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => void deletePost(post.id)}
+            aria-label="Delete post"
+            title="Delete post"
+            className="text-stone-400 hover:text-rose-600 dark:text-white/30 dark:hover:text-rose-400 transition-colors p-1"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
 
       {/* Content */}

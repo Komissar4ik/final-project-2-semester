@@ -133,12 +133,24 @@ export const socialApi = {
     };
   },
 
+  async deletePost(postId: string) {
+    await apiClient.delete(`/posts/${postId}`);
+  },
+
   async likePost(postId: string) {
     await apiClient.post(`/posts/${postId}/likes`);
   },
 
   async unlikePost(postId: string) {
     await apiClient.delete(`/posts/${postId}/likes`);
+  },
+
+  async likeComment(commentId: string) {
+    await apiClient.post(`/comments/${commentId}/likes`);
+  },
+
+  async unlikeComment(commentId: string) {
+    await apiClient.delete(`/comments/${commentId}/likes`);
   },
 
   async followUser(userId: string) {

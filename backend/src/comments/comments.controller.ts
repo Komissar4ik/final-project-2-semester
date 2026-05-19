@@ -56,4 +56,28 @@ export class CommentsController {
   remove(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
     return this.commentsService.remove(id, request.user.id);
   }
+
+  @Post('comments/:id/likes')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Like a comment' })
+  @ApiParam({ name: 'id', example: '51f4d7c4-7d2a-4f9c-9f17-965b51d671d6' })
+  @ApiCreatedResponse({ description: 'Created or existing comment like.' })
+  @ApiUnauthorizedResponse({ description: 'JWT token is missing or invalid.' })
+  like(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    return this.commentsService.like(id, request.user.id);
+  }
+
+  @Delete('comments/:id/likes')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Remove like from a comment' })
+  @ApiParam({ name: 'id', example: '51f4d7c4-7d2a-4f9c-9f17-965b51d671d6' })
+  @ApiOkResponse({ description: 'Remove-like result.' })
+  @ApiUnauthorizedResponse({ description: 'JWT token is missing or invalid.' })
+  unlike(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    return this.commentsService.unlike(id, request.user.id);
+  }
 }
