@@ -9,6 +9,11 @@ const postInclude = {
       id: true,
       displayName: true,
       avatarUrl: true,
+      settings: {
+        select: {
+          publicProfile: true,
+        },
+      },
     },
   },
   _count: {
@@ -20,6 +25,26 @@ const postInclude = {
 };
 
 const hashtagPattern = /#[\p{L}\p{N}_-]+/gu;
+const publicPostWhere = {
+  OR: [
+    {
+      author: {
+        settings: {
+          is: null,
+        },
+      },
+    },
+    {
+      author: {
+        settings: {
+          is: {
+            publicProfile: true,
+          },
+        },
+      },
+    },
+  ],
+};
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -62,12 +87,13 @@ export class PostsService {
     const { page, limit, skip } = normalizePagination(options);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
+        where: publicPostWhere,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: postInclude,
       }),
-      this.prisma.post.count(),
+      this.prisma.post.count({ where: publicPostWhere }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -87,6 +113,7 @@ export class PostsService {
 
   async findTrendingTags(limit = 5) {
     const posts = await this.prisma.post.findMany({
+      where: publicPostWhere,
       select: {
         id: true,
         content: true,
