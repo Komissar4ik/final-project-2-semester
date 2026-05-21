@@ -7,9 +7,39 @@ import ProfileHeader from '../components/ProfileHeader';
 import PostCard from '../components/PostCard';
 import PageTransition from '../app/PageTransition';
 import { cn } from '../lib/utils';
+import type { Post } from '../types';
 
 type ViewMode = 'list' | 'grid';
 type ProfileTab = 'posts' | 'saved';
+
+function PostGridItem({ post, index }: { post: Post; index: number }) {
+  const [isImageUnavailable, setIsImageUnavailable] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.04 }}
+      whileHover={{ scale: 1.03 }}
+      className="aspect-square rounded-2xl overflow-hidden border border-tbank-border bg-tbank-gray relative cursor-pointer dark:border-white/[0.08] dark:bg-white/[0.04]"
+    >
+      {post.image && !isImageUnavailable ? (
+        <img
+          src={post.image}
+          alt="Post"
+          onError={() => setIsImageUnavailable(true)}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center p-3">
+          <p className="text-xs text-stone-600 dark:text-white/50 text-center line-clamp-4 leading-relaxed">
+            {post.content}
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -122,26 +152,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {visiblePosts.map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.04 }}
-                  whileHover={{ scale: 1.03 }}
-                  className="aspect-square rounded-2xl overflow-hidden border border-tbank-border bg-tbank-gray relative cursor-pointer dark:border-white/[0.08] dark:bg-white/[0.04]"
-                >
-                  {post.image ? (
-                    <img src={post.image} alt="Post" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-3">
-                      <p className="text-xs text-stone-600 dark:text-white/50 text-center line-clamp-4 leading-relaxed">
-                        {post.content}
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
+              {visiblePosts.map((post, i) => <PostGridItem key={post.id} post={post} index={i} />)}
             </div>
           )}
         </div>

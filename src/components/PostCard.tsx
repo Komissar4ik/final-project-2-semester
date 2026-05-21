@@ -30,6 +30,7 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
   const [showComments, setShowComments] = useState(expanded);
   const [commentText, setCommentText] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+  const [isImageUnavailable, setIsImageUnavailable] = useState(false);
 
   const author =
     post.authorId === currentUser.id
@@ -158,11 +159,12 @@ export default function PostCard({ post, index = 0, expanded = false }: PostCard
       </div>
 
       {/* Image */}
-      {post.image && (
+      {post.image && !isImageUnavailable && (
         <div className="mx-5 mb-3 overflow-hidden rounded-xl border border-tbank-border/50 dark:border-white/[0.06]">
           <img
             src={post.image}
             alt="Post"
+            onError={() => setIsImageUnavailable(true)}
             className="w-full h-52 object-cover hover:scale-105 transition-transform duration-500"
           />
         </div>
